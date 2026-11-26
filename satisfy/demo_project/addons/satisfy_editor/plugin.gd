@@ -6,10 +6,11 @@ var object_tree: Tree
 var transform_fields: Dictionary = {}
 var selected_object: Node3D
 var rename_input: LineEdit
+var inspector_info: Label
 
 
 func _enter_tree():
-    print("SATISFY EDITOR V0.5 LOADED")
+    print("SATISFY EDITOR V0.6 LOADED")
 
     satisfy_dock = VBoxContainer.new()
     satisfy_dock.name = "SATISFY"
@@ -21,7 +22,7 @@ func _enter_tree():
     satisfy_dock.add_child(title)
 
     var subtitle = Label.new()
-    subtitle.text = "SCENE BUILDER v0.5"
+    subtitle.text = "SCENE BUILDER v0.6"
     subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     satisfy_dock.add_child(subtitle)
 
@@ -48,6 +49,13 @@ func _enter_tree():
     satisfy_dock.add_child(object_tree)
 
     add_button("REFRESH OBJECTS", refresh_objects)
+
+    add_section("OBJECT INSPECTOR")
+
+    inspector_info = Label.new()
+    inspector_info.text = "Select an object to inspect."
+    inspector_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    satisfy_dock.add_child(inspector_info)
 
     add_section("OBJECT ACTIONS")
 
@@ -130,7 +138,10 @@ func refresh_objects():
         return
 
     var tree_root = object_tree.create_item()
+    tree_root.set_text(0, str(root.name))
+    tree_root.set_metadata(0, root)
     _add_object_items(root, tree_root)
+    tree_root.collapsed = false
 
 
 func _add_object_items(node: Node, parent_item: TreeItem):
@@ -165,6 +176,8 @@ func _on_object_selected():
         editor_selection.add_node(node)
     else:
         selected_object = null
+
+    _update_inspector(node)
 
 
 func _load_transform(node: Node3D):
@@ -406,3 +419,22 @@ func _on_create_light():
 func _on_open_3d_viewport():
     get_editor_interface().set_main_screen_editor("3D")
     print("SATISFY: 3D VIEWPORT OPENED")
+
+
+func _update_inspector(node: Node):
+    if inspector_info == null:
+        return
+
+    if not is_instance_valid(node):
+        inspector_info.text = "Select an object to inspect."
+        return
+
+    var parent_name = "None"
+    if node.get_parent() != null:
+        parent_name = str(node.get_parent().name)
+
+    inspector_info.text = (
+        "Name: " + str(node.name) + "\n" +
+        "Type: " + node.get_class() + "\n" +
+        "Parent: " + parent_name
+    )
