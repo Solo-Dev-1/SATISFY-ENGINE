@@ -7,10 +7,13 @@ var transform_fields: Dictionary = {}
 var selected_object: Node3D
 var rename_input: LineEdit
 var inspector_info: Label
+var selection_locked: bool = false
+var visibility_button: Button
+var lock_status: Label
 
 
 func _enter_tree():
-    print("SATISFY EDITOR V0.6 LOADED")
+    print("SATISFY EDITOR V0.7 LOADED")
 
     satisfy_dock = VBoxContainer.new()
     satisfy_dock.name = "SATISFY"
@@ -22,7 +25,7 @@ func _enter_tree():
     satisfy_dock.add_child(title)
 
     var subtitle = Label.new()
-    subtitle.text = "SCENE BUILDER v0.6"
+    subtitle.text = "SCENE BUILDER v0.7"
     subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     satisfy_dock.add_child(subtitle)
 
@@ -66,6 +69,21 @@ func _enter_tree():
     add_button("RENAME OBJECT", _on_rename_object)
     add_button("DUPLICATE OBJECT", _on_duplicate_object)
     add_button("DELETE OBJECT", _on_delete_object)
+
+    add_section("VISIBILITY & LOCK")
+
+    visibility_button = Button.new()
+    visibility_button.text = "HIDE OBJECT"
+    visibility_button.pressed.connect(_on_toggle_visibility)
+    visibility_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    satisfy_dock.add_child(visibility_button)
+
+    add_button("LOCK SELECTION", _on_lock_selection)
+    add_button("UNLOCK SELECTION", _on_unlock_selection)
+
+    lock_status = Label.new()
+    lock_status.text = "Selection: UNLOCKED"
+    satisfy_dock.add_child(lock_status)
 
     add_section("TRANSFORM TOOLS")
 
@@ -165,6 +183,9 @@ func _on_object_selected():
     var node = item.get_metadata(0)
 
     if not is_instance_valid(node):
+        return
+
+    if selection_locked:
         return
 
     if node is Node3D:
@@ -438,3 +459,30 @@ func _update_inspector(node: Node):
         "Type: " + node.get_class() + "\n" +
         "Parent: " + parent_name
     )
+
+
+func _on_toggle_visibility():
+    if not is_instance_valid(selected_object):
+        push_warning("Select a 3D object first.")
+        return
+
+    selected_object.visible = not selected_object.visible
+
+    if selected_object.visible:
+        visibility_button.text = "HIDE OBJECT"
+    else:
+        visibility_button.text = "SHOW OBJECT"
+
+    _update_inspector(selected_object)
+
+
+func _on_lock_selection():
+    selection_locked = true
+    lock_status.text = "Selection: LOCKED"
+    print("SATISFY: Selection locked")
+
+
+func _on_unlock_selection():
+    selection_locked = false
+    lock_status.text = "Selection: UNLOCKED"
+    print("SATISFY: Selection unlocked")
