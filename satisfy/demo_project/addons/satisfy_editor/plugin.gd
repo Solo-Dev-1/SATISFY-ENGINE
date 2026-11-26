@@ -5,10 +5,11 @@ var satisfy_dock: VBoxContainer
 var object_tree: Tree
 var transform_fields: Dictionary = {}
 var selected_object: Node3D
+var rename_input: LineEdit
 
 
 func _enter_tree():
-    print("SATISFY EDITOR V0.4 LOADED")
+    print("SATISFY EDITOR V0.5 LOADED")
 
     satisfy_dock = VBoxContainer.new()
     satisfy_dock.name = "SATISFY"
@@ -20,7 +21,7 @@ func _enter_tree():
     satisfy_dock.add_child(title)
 
     var subtitle = Label.new()
-    subtitle.text = "SCENE BUILDER v0.4"
+    subtitle.text = "SCENE BUILDER v0.5"
     subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     satisfy_dock.add_child(subtitle)
 
@@ -47,6 +48,16 @@ func _enter_tree():
     satisfy_dock.add_child(object_tree)
 
     add_button("REFRESH OBJECTS", refresh_objects)
+
+    add_section("OBJECT ACTIONS")
+
+    rename_input = LineEdit.new()
+    rename_input.placeholder_text = "New object name"
+    satisfy_dock.add_child(rename_input)
+
+    add_button("RENAME OBJECT", _on_rename_object)
+    add_button("DUPLICATE OBJECT", _on_duplicate_object)
+    add_button("DELETE OBJECT", _on_delete_object)
 
     add_section("TRANSFORM TOOLS")
 
@@ -216,6 +227,125 @@ func add_node_to_scene(node: Node):
     undo.commit_action()
 
     refresh_objects()
+
+
+
+func _on_rename_object():
+    if not is_instance_valid(selected_object):
+        push_warning("Select an object first.")
+        return
+
+    var new_name = rename_input.text.strip_edges()
+
+    if new_name.is_empty():
+        push_warning("Enter a new object name.")
+        return
+
+    var node = selected_object
+    var old_name = node.name
+
+    if new_name == str(old_name):
+        return
+
+    var undo = get_undo_redo()
+    undo.create_action("SATISFY: Rename Object")
+    undo.add_do_property(node, "name", new_name)
+    undo.add_undo_property(node, "name", old_name)
+    undo.commit_action()
+
+    rename_input.clear()
+    refresh_objects()
+    print("SATISFY: Object renamed to ", new_name)
+
+
+func _on_duplicate_object():
+    if not is_instance_valid(selected_object):
+        push_warning("Select an object first.")
+        return
+
+    var original = selected_object
+    var parent = original.get_parent()
+    var root = get_editor_interface().get_edited_scene_root()
+
+    if parent == null or root == null:
+        return
+
+    var copy = original.duplicate()
+    if copy == null:
+        push_error("Could not duplicate object.")
+        return
+
+    var base_name = str(original.name) + "_Copy"
+    var copy_name = base_name
+    var number = 2
+
+    while parent.has_node(NodePath(copy_name)):
+        copy_name = base_name + str(number)
+        number += 1
+
+    copy.name = copy_name
+
+    var undo = get_undo_redo()
+    undo.create_action("SATISFY: Duplicate Object")
+    undo.add_do_method(parent, "add_child", copy)
+    undo.add_do_method(self, "_set_owner_recursive", copy, root)
+    undo.add_undo_method(parent, "remove_child", copy)
+    undo.commit_action()
+
+    selected_object = copy
+    refresh_objects()
+    print("SATISFY: Duplicated ", original.name)
+
+
+func _on_delete_object():
+    if not is_instance_valid(selected_object):
+        push_warning("Select an object first.")
+        return
+
+    var node = selected_object
+    var parent = node.get_parent()
+    var root = get_editor_interface().get_edited_scene_root()
+
+    if parent == null or node == root:
+        push_warning("Cannot delete the scene root.")
+        return
+
+    var old_index = node.get_index()
+
+    var undo = get_undo_redo()
+    undo.create_action("SATISFY: Delete Object")
+    undo.add_do_method(parent, "remove_child", node)
+    undo.add_undo_method(
+        self,
+        "_restore_deleted_node",
+        parent,
+        node,
+        old_index,
+        root
+    )
+    undo.commit_action()
+
+    selected_object = null
+    refresh_objects()
+    print("SATISFY: Object deleted")
+
+
+func _restore_deleted_node(
+    parent: Node,
+    node: Node,
+    old_index: int,
+    root: Node
+):
+    parent.add_child(node)
+    parent.move_child(node, old_index)
+    _set_owner_recursive(node, root)
+
+
+func _set_owner_recursive(node: Node, root: Node):
+    node.owner = root
+
+    for child in node.get_children():
+        _set_owner_recursive(child, root)
 
 
 func _on_create_scene():
