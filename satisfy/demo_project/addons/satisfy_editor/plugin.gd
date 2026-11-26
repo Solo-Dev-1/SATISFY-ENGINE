@@ -4,6 +4,9 @@ extends EditorPlugin
 var satisfy_dock: VBoxContainer
 var object_tree: Tree
 var transform_fields: Dictionary = {}
+var transform_rows: Dictionary = {}
+var transform_mode_status: Label
+var active_transform_mode: String = "MOVE"
 var selected_object: Node3D
 var rename_input: LineEdit
 var inspector_info: Label
@@ -14,7 +17,7 @@ var lock_status: Label
 
 
 func _enter_tree():
-    print("SATISFY EDITOR V0.9 LOADED")
+    print("SATISFY EDITOR V1.0 LOADED")
 
     satisfy_dock = VBoxContainer.new()
     satisfy_dock.name = "SATISFY"
@@ -26,7 +29,7 @@ func _enter_tree():
     satisfy_dock.add_child(title)
 
     var subtitle = Label.new()
-    subtitle.text = "SCENE BUILDER v0.9"
+    subtitle.text = "SCENE BUILDER v1.0"
     subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     satisfy_dock.add_child(subtitle)
 
@@ -92,9 +95,19 @@ func _enter_tree():
 
     add_section("TRANSFORM TOOLS")
 
+    add_button("MOVE", _on_move_mode)
+    add_button("ROTATE", _on_rotate_mode)
+    add_button("SCALE", _on_scale_mode)
+
+    transform_mode_status = Label.new()
+    transform_mode_status.text = "Mode: MOVE"
+    satisfy_dock.add_child(transform_mode_status)
+
     create_transform_row("Position", "position")
     create_transform_row("Rotation", "rotation")
     create_transform_row("Scale", "scale")
+
+    _set_transform_mode("MOVE")
 
     add_button("APPLY TRANSFORM", _on_apply_transform)
 
@@ -145,7 +158,32 @@ func create_transform_row(label_text: String, key: String):
         fields.append(field)
 
     transform_fields[key] = fields
+    transform_rows[key] = row
     satisfy_dock.add_child(row)
+
+
+func _set_transform_mode(mode: String):
+    active_transform_mode = mode
+    transform_mode_status.text = "Mode: " + mode
+
+    for key in transform_rows:
+        transform_rows[key].visible = (
+            (mode == "MOVE" and key == "position") or
+            (mode == "ROTATE" and key == "rotation") or
+            (mode == "SCALE" and key == "scale")
+        )
+
+
+func _on_move_mode():
+    _set_transform_mode("MOVE")
+
+
+func _on_rotate_mode():
+    _set_transform_mode("ROTATE")
+
+
+func _on_scale_mode():
+    _set_transform_mode("SCALE")
 
 
 func refresh_objects():
