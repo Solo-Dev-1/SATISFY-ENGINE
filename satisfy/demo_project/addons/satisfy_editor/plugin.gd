@@ -9,11 +9,12 @@ var rename_input: LineEdit
 var inspector_info: Label
 var selection_locked: bool = false
 var visibility_button: Button
+var visibility_status: Label
 var lock_status: Label
 
 
 func _enter_tree():
-    print("SATISFY EDITOR V0.7 LOADED")
+    print("SATISFY EDITOR V0.8 LOADED")
 
     satisfy_dock = VBoxContainer.new()
     satisfy_dock.name = "SATISFY"
@@ -25,7 +26,7 @@ func _enter_tree():
     satisfy_dock.add_child(title)
 
     var subtitle = Label.new()
-    subtitle.text = "SCENE BUILDER v0.7"
+    subtitle.text = "SCENE BUILDER v0.8"
     subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     satisfy_dock.add_child(subtitle)
 
@@ -77,6 +78,10 @@ func _enter_tree():
     visibility_button.pressed.connect(_on_toggle_visibility)
     visibility_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     satisfy_dock.add_child(visibility_button)
+
+    visibility_status = Label.new()
+    visibility_status.text = "Visibility: NO OBJECT"
+    satisfy_dock.add_child(visibility_status)
 
     add_button("LOCK SELECTION", _on_lock_selection)
     add_button("UNLOCK SELECTION", _on_unlock_selection)
@@ -149,6 +154,7 @@ func refresh_objects():
 
     object_tree.clear()
     selected_object = null
+    _update_visibility_controls()
 
     var root = get_editor_interface().get_edited_scene_root()
 
@@ -199,6 +205,7 @@ func _on_object_selected():
         selected_object = null
 
     _update_inspector(node)
+    _update_visibility_controls()
 
 
 func _load_transform(node: Node3D):
@@ -461,18 +468,33 @@ func _update_inspector(node: Node):
     )
 
 
-func _on_toggle_visibility():
-    if not is_instance_valid(selected_object):
-        push_warning("Select a 3D object first.")
+func _update_visibility_controls():
+    if visibility_button == null or visibility_status == null:
         return
 
-    selected_object.visible = not selected_object.visible
+    if not is_instance_valid(selected_object):
+        visibility_button.text = "HIDE OBJECT"
+        visibility_button.disabled = true
+        visibility_status.text = "Visibility: NO OBJECT"
+        return
+
+    visibility_button.disabled = false
 
     if selected_object.visible:
         visibility_button.text = "HIDE OBJECT"
+        visibility_status.text = "Visibility: VISIBLE"
     else:
         visibility_button.text = "SHOW OBJECT"
+        visibility_status.text = "Visibility: HIDDEN"
 
+
+func _on_toggle_visibility():
+    if not is_instance_valid(selected_object):
+        _update_visibility_controls()
+        return
+
+    selected_object.visible = not selected_object.visible
+    _update_visibility_controls()
     _update_inspector(selected_object)
 
 
