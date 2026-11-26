@@ -18,7 +18,7 @@ var satisfy_gizmo: EditorNode3DGizmoPlugin
 
 
 func _enter_tree():
-    print("SATISFY EDITOR V1.2 LOADED")
+    print("SATISFY EDITOR V1.3 LOADED")
 
     satisfy_gizmo = load(
         "res://addons/satisfy_editor/satisfy_transform_gizmo.gd"

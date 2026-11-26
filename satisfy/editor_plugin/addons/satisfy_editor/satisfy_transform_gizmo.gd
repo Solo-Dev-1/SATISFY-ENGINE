@@ -13,6 +13,10 @@ func _init():
     create_material("axis_y", Color(0.2, 1, 0.2))
     create_material("axis_z", Color(0.2, 0.5, 1))
 
+    create_material("rotate_x", Color(1, 0.2, 0.2))
+    create_material("rotate_y", Color(0.2, 1, 0.2))
+    create_material("rotate_z", Color(0.2, 0.5, 1))
+
     create_handle_material("handles")
 
 
@@ -49,11 +53,50 @@ func _redraw(gizmo: EditorNode3DGizmo):
     gizmo.add_lines(y_axis, get_material("axis_y", gizmo))
     gizmo.add_lines(z_axis, get_material("axis_z", gizmo))
 
+    gizmo.add_lines(
+        _make_ring(HANDLE_X),
+        get_material("rotate_x", gizmo)
+    )
+    gizmo.add_lines(
+        _make_ring(HANDLE_Y),
+        get_material("rotate_y", gizmo)
+    )
+    gizmo.add_lines(
+        _make_ring(HANDLE_Z),
+        get_material("rotate_z", gizmo)
+    )
+
     gizmo.add_handles(
         handles,
         get_material("handles", gizmo),
         PackedInt32Array([HANDLE_X, HANDLE_Y, HANDLE_Z])
     )
+
+
+func _make_ring(axis: int, radius: float = 2.0, segments: int = 64) -> PackedVector3Array:
+    var points := PackedVector3Array()
+
+    for i in range(segments):
+        var a0 := TAU * float(i) / segments
+        var a1 := TAU * float(i + 1) / segments
+
+        var p0: Vector3
+        var p1: Vector3
+
+        if axis == HANDLE_X:
+            p0 = Vector3(0, cos(a0) * radius, sin(a0) * radius)
+            p1 = Vector3(0, cos(a1) * radius, sin(a1) * radius)
+        elif axis == HANDLE_Y:
+            p0 = Vector3(cos(a0) * radius, 0, sin(a0) * radius)
+            p1 = Vector3(cos(a1) * radius, 0, sin(a1) * radius)
+        else:
+            p0 = Vector3(cos(a0) * radius, sin(a0) * radius, 0)
+            p1 = Vector3(cos(a1) * radius, sin(a1) * radius, 0)
+
+        points.append(p0)
+        points.append(p1)
+
+    return points
 
 
 func _get_handle_name(
