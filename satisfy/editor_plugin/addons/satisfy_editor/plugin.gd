@@ -14,10 +14,17 @@ var selection_locked: bool = false
 var visibility_button: Button
 var visibility_status: Label
 var lock_status: Label
+var satisfy_gizmo: EditorNode3DGizmoPlugin
 
 
 func _enter_tree():
-    print("SATISFY EDITOR V1.1 LOADED")
+    print("SATISFY EDITOR V1.2 LOADED")
+
+    satisfy_gizmo = load(
+        "res://addons/satisfy_editor/satisfy_transform_gizmo.gd"
+    ).new()
+
+    add_node_3d_gizmo_plugin(satisfy_gizmo)
 
     satisfy_dock = VBoxContainer.new()
     satisfy_dock.name = "SATISFY"
@@ -117,6 +124,10 @@ func _enter_tree():
 
 
 func _exit_tree():
+    if satisfy_gizmo:
+        remove_node_3d_gizmo_plugin(satisfy_gizmo)
+        satisfy_gizmo = null
+
     if satisfy_dock:
         remove_control_from_docks(satisfy_dock)
         satisfy_dock.queue_free()
