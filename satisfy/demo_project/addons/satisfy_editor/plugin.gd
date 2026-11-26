@@ -8,7 +8,7 @@ var selected_object: Node3D
 
 
 func _enter_tree():
-    print("SATISFY EDITOR V0.3 LOADED")
+    print("SATISFY EDITOR V0.4 LOADED")
 
     satisfy_dock = VBoxContainer.new()
     satisfy_dock.name = "SATISFY"
@@ -20,12 +20,13 @@ func _enter_tree():
     satisfy_dock.add_child(title)
 
     var subtitle = Label.new()
-    subtitle.text = "SCENE BUILDER v0.3"
+    subtitle.text = "SCENE BUILDER v0.4"
     subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     satisfy_dock.add_child(subtitle)
 
     add_section("SCENE TOOLS")
     add_button("CREATE SCENE", _on_create_scene)
+    add_button("OPEN 3D VIEWPORT", _on_open_3d_viewport)
 
     add_section("3D OBJECTS")
     add_button("CREATE CUBE", _on_create_cube)
@@ -270,3 +271,8 @@ func _on_create_light():
     var node = DirectionalLight3D.new()
     node.name = "DirectionalLight3D"
     add_node_to_scene(node)
+
+
+func _on_open_3d_viewport():
+    get_editor_interface().set_main_screen_editor("3D")
+    print("SATISFY: 3D VIEWPORT OPENED")
