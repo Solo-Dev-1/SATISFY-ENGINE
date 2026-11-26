@@ -17,7 +17,7 @@ var lock_status: Label
 
 
 func _enter_tree():
-    print("SATISFY EDITOR V1.0 LOADED")
+    print("SATISFY EDITOR V1.1 LOADED")
 
     satisfy_dock = VBoxContainer.new()
     satisfy_dock.name = "SATISFY"
@@ -29,13 +29,15 @@ func _enter_tree():
     satisfy_dock.add_child(title)
 
     var subtitle = Label.new()
-    subtitle.text = "SCENE BUILDER v1.0"
+    subtitle.text = "SCENE BUILDER v1.1"
     subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     satisfy_dock.add_child(subtitle)
 
     add_section("SCENE TOOLS")
     add_button("CREATE SCENE", _on_create_scene)
     add_button("OPEN 3D VIEWPORT", _on_open_3d_viewport)
+    add_button("SELECT OBJECT", _on_select_in_viewport)
+    add_button("FOCUS SELECTED", _on_focus_selected)
 
     add_section("3D OBJECTS")
     add_button("CREATE CUBE", _on_create_cube)
@@ -491,6 +493,51 @@ func _on_create_light():
 func _on_open_3d_viewport():
     get_editor_interface().set_main_screen_editor("3D")
     print("SATISFY: 3D VIEWPORT OPENED")
+
+
+func _on_select_in_viewport():
+    if not is_instance_valid(selected_object):
+        push_warning("Select a 3D object first.")
+        return
+
+    var editor_selection = get_editor_interface().get_selection()
+    editor_selection.clear()
+    editor_selection.add_node(selected_object)
+
+    get_editor_interface().set_main_screen_editor("3D")
+    print("SATISFY: Object selected in native viewport")
+
+
+func _on_focus_selected():
+    if not is_instance_valid(selected_object):
+        push_warning("Select a 3D object first.")
+        return
+
+    get_editor_interface().set_main_screen_editor("3D")
+    _focus_selected_deferred.call_deferred()
+
+
+func _focus_selected_deferred():
+    if not is_instance_valid(selected_object):
+        return
+
+    var viewport = get_editor_interface().get_editor_viewport_3d(0)
+
+    if viewport == null:
+        push_warning("3D editor viewport is not available.")
+        return
+
+    var camera = viewport.get_camera_3d()
+
+    if camera == null:
+        push_warning("3D editor camera is not available.")
+        return
+
+    var target = selected_object.global_position
+    camera.global_position = target + Vector3(4, 3, 4)
+    camera.look_at(target, Vector3.UP)
+
+    print("SATISFY: Viewport focused on ", selected_object.name)
 
 
 func _update_inspector(node: Node):
