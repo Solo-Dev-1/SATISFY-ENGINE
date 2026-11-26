@@ -4,6 +4,7 @@ extends EditorPlugin
 var satisfy_dock: VBoxContainer
 
 func _enter_tree():
+    print("SATISFY EDITOR PLUGIN LOADED")
     satisfy_dock = VBoxContainer.new()
     satisfy_dock.name = "SATISFY"
 
