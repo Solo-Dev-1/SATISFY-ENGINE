@@ -2,14 +2,17 @@
 extends EditorPlugin
 
 var satisfy_dock: VBoxContainer
+var object_tree: Tree
+var transform_fields: Dictionary = {}
+var selected_object: Node3D
 
 
 func _enter_tree():
-    print("SATISFY EDITOR V0.2 LOADED")
+    print("SATISFY EDITOR V0.3 LOADED")
 
     satisfy_dock = VBoxContainer.new()
     satisfy_dock.name = "SATISFY"
-    satisfy_dock.custom_minimum_size = Vector2(220, 0)
+    satisfy_dock.custom_minimum_size = Vector2(260, 0)
 
     var title = Label.new()
     title.text = "SATISFY ENGINE"
@@ -17,11 +20,9 @@ func _enter_tree():
     satisfy_dock.add_child(title)
 
     var subtitle = Label.new()
-    subtitle.text = "GAME DEVELOPMENT TOOLS v0.2"
+    subtitle.text = "SCENE BUILDER v0.3"
     subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     satisfy_dock.add_child(subtitle)
-
-    satisfy_dock.add_child(HSeparator.new())
 
     add_section("SCENE TOOLS")
     add_button("CREATE SCENE", _on_create_scene)
@@ -35,6 +36,25 @@ func _enter_tree():
     add_button("CREATE CAMERA", _on_create_camera)
     add_button("CREATE LIGHT", _on_create_light)
 
+    add_section("OBJECT EXPLORER")
+
+    object_tree = Tree.new()
+    object_tree.custom_minimum_size = Vector2(240, 180)
+    object_tree.size_flags_vertical = Control.SIZE_EXPAND_FILL
+    object_tree.hide_root = true
+    object_tree.item_selected.connect(_on_object_selected)
+    satisfy_dock.add_child(object_tree)
+
+    add_button("REFRESH OBJECTS", refresh_objects)
+
+    add_section("TRANSFORM TOOLS")
+
+    create_transform_row("Position", "position")
+    create_transform_row("Rotation", "rotation")
+    create_transform_row("Scale", "scale")
+
+    add_button("APPLY TRANSFORM", _on_apply_transform)
+
     add_control_to_dock(DOCK_SLOT_LEFT_UL, satisfy_dock)
 
 
@@ -45,9 +65,10 @@ func _exit_tree():
 
 
 func add_section(section_name: String):
+    satisfy_dock.add_child(HSeparator.new())
+
     var label = Label.new()
     label.text = section_name
-    satisfy_dock.add_child(HSeparator.new())
     satisfy_dock.add_child(label)
 
 
@@ -57,6 +78,125 @@ func add_button(button_name: String, callback: Callable):
     button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     button.pressed.connect(callback)
     satisfy_dock.add_child(button)
+
+
+func create_transform_row(label_text: String, key: String):
+    var row = HBoxContainer.new()
+
+    var label = Label.new()
+    label.text = label_text
+    label.custom_minimum_size = Vector2(65, 0)
+    row.add_child(label)
+
+    var fields: Array[SpinBox] = []
+
+    for axis in ["X", "Y", "Z"]:
+        var field = SpinBox.new()
+        field.min_value = -10000
+        field.max_value = 10000
+        field.step = 0.1
+        field.custom_minimum_size = Vector2(55, 0)
+        field.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        field.tooltip_text = axis
+        row.add_child(field)
+        fields.append(field)
+
+    transform_fields[key] = fields
+    satisfy_dock.add_child(row)
+
+
+func refresh_objects():
+    if object_tree == null:
+        return
+
+    object_tree.clear()
+    selected_object = null
+
+    var root = get_editor_interface().get_edited_scene_root()
+
+    if root == null:
+        return
+
+    var tree_root = object_tree.create_item()
+    _add_object_items(root, tree_root)
+
+
+func _add_object_items(node: Node, parent_item: TreeItem):
+    for child in node.get_children():
+        var item = object_tree.create_item(parent_item)
+        item.set_text(0, child.name)
+        item.set_metadata(0, child)
+
+        if child is Node3D:
+            item.set_text(0, "3D: " + child.name)
+
+        _add_object_items(child, item)
+
+
+func _on_object_selected():
+    var item = object_tree.get_selected()
+
+    if item == null:
+        return
+
+    var node = item.get_metadata(0)
+
+    if not is_instance_valid(node):
+        return
+
+    if node is Node3D:
+        selected_object = node
+        _load_transform(node)
+
+        var editor_selection = get_editor_interface().get_selection()
+        editor_selection.clear()
+        editor_selection.add_node(node)
+    else:
+        selected_object = null
+
+
+func _load_transform(node: Node3D):
+    _set_fields("position", node.position)
+    _set_fields("rotation", node.rotation_degrees)
+    _set_fields("scale", node.scale)
+
+
+func _set_fields(key: String, value: Vector3):
+    var fields = transform_fields[key]
+    fields[0].value = value.x
+    fields[1].value = value.y
+    fields[2].value = value.z
+
+
+func _read_fields(key: String) -> Vector3:
+    var fields = transform_fields[key]
+
+    return Vector3(
+        fields[0].value,
+        fields[1].value,
+        fields[2].value
+    )
+
+
+func _on_apply_transform():
+    if not is_instance_valid(selected_object):
+        push_warning("Select a 3D object first.")
+        return
+
+    var node = selected_object
+
+    var undo = get_undo_redo()
+    undo.create_action("SATISFY: Apply Transform")
+
+    undo.add_do_property(node, "position", _read_fields("position"))
+    undo.add_do_property(node, "rotation_degrees", _read_fields("rotation"))
+    undo.add_do_property(node, "scale", _read_fields("scale"))
+
+    undo.add_undo_property(node, "position", node.position)
+    undo.add_undo_property(node, "rotation_degrees", node.rotation_degrees)
+    undo.add_undo_property(node, "scale", node.scale)
+
+    undo.commit_action()
 
 
 func add_node_to_scene(node: Node):
@@ -73,6 +213,8 @@ func add_node_to_scene(node: Node):
     undo.add_do_method(node, "set_owner", root)
     undo.add_undo_method(root, "remove_child", node)
     undo.commit_action()
+
+    refresh_objects()
 
 
 func _on_create_scene():
