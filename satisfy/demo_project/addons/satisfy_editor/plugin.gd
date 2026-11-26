@@ -14,7 +14,7 @@ var lock_status: Label
 
 
 func _enter_tree():
-    print("SATISFY EDITOR V0.8 LOADED")
+    print("SATISFY EDITOR V0.9 LOADED")
 
     satisfy_dock = VBoxContainer.new()
     satisfy_dock.name = "SATISFY"
@@ -26,7 +26,7 @@ func _enter_tree():
     satisfy_dock.add_child(title)
 
     var subtitle = Label.new()
-    subtitle.text = "SCENE BUILDER v0.8"
+    subtitle.text = "SCENE BUILDER v0.9"
     subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     satisfy_dock.add_child(subtitle)
 
@@ -203,6 +203,12 @@ func _on_object_selected():
         editor_selection.add_node(node)
     else:
         selected_object = null
+
+    if rename_input != null:
+        if node is Node3D:
+            rename_input.text = str(node.name)
+        else:
+            rename_input.clear()
 
     _update_inspector(node)
     _update_visibility_controls()
@@ -461,12 +467,21 @@ func _update_inspector(node: Node):
     if node.get_parent() != null:
         parent_name = str(node.get_parent().name)
 
-    inspector_info.text = (
+    var info = (
         "Name: " + str(node.name) + "\n" +
         "Type: " + node.get_class() + "\n" +
         "Parent: " + parent_name
     )
 
+    if node is Node3D:
+        info += (
+            "\nVisibility: " + ("VISIBLE" if node.visible else "HIDDEN") +
+            "\nPosition: " + str(node.position) +
+            "\nRotation: " + str(node.rotation_degrees) +
+            "\nScale: " + str(node.scale)
+        )
+
+    inspector_info.text = info
 
 func _update_visibility_controls():
     if visibility_button == null or visibility_status == null:
